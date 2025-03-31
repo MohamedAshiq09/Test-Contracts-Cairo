@@ -23,16 +23,17 @@ mod anonymous_nft {
 mod marketplace {
     use starknet::ContractAddress;
 
-    #[derive(Drop, Serde, starknet::Store)]
+    #[derive(Drop, Serde, starknet::Event)]
     pub struct Listing {
         pub token_id: felt252,
         pub price: felt252,
+        pub commitment: felt252,
         pub seller: ContractAddress,
         pub expiration: u64,
         pub active: bool,
     }
 
-    #[derive(Drop, Serde, starknet::Store)]
+    #[derive(Drop, Serde, starknet::Event)]
     pub struct Offer {
         pub listing_id: felt252,
         pub buyer: ContractAddress,

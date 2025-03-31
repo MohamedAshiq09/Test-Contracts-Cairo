@@ -47,22 +47,25 @@
 // }
 
 use starknet::{ContractAddress, contract_address_const};
-use starknet::testing::{set_caller_address, set_contract_address};
+use starknet::testing::set_caller_address;
 use debug::PrintTrait;
 
+// Import snforge_std correctly
 use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank, CheatTarget};
 
 // Import interface dispatchers
-use lib::anonymous_nft::{IAnonymousNFTDispatcher, IAnonymousNFTDispatcherTrait};
-use lib::marketplace::{IMarketPlaceDispatcher, IMarketPlaceDispatcherTrait};
+use contract::lib::anonymous_nft::{IAnonymousNFTDispatcher, IAnonymousNFTDispatcherTrait};
+use contract::lib::marketplace::{IMarketPlaceDispatcher, IMarketPlaceDispatcherTrait};
 
 // Deploy and create dispatcher for AnonymousNFT
 fn deploy_anonymous_nft() -> IAnonymousNFTDispatcher {
     // Deploy contract
-    let contract = declare("AnonymousNFT").unwrap();
+    let contract = declare("AnonymousNFT");
     let admin_address = contract_address_const::<0x123>();
     let constructor_calldata = array![admin_address.into()];
-    let (contract_address, _) = contract.deploy(@constructor_calldata).unwrap();
+    
+    // Fix the deployment syntax
+    let contract_address = contract.deploy(@constructor_calldata).unwrap();
     
     // Return dispatcher
     IAnonymousNFTDispatcher { contract_address }
@@ -71,13 +74,12 @@ fn deploy_anonymous_nft() -> IAnonymousNFTDispatcher {
 // Deploy and create dispatcher for MarketPlace
 fn deploy_marketplace() -> IMarketPlaceDispatcher {
     // Deploy contract
-    let contract = declare("MarketPlace").unwrap();
+    let contract = declare("MarketPlace");
     let fee_percentage: u16 = 250; // 2.5%
     let fee_recipient = contract_address_const::<0x456>();
     
-    // Remove the admin parameter since it's not in the actual constructor
     let constructor_calldata = array![fee_percentage.into(), fee_recipient.into()];
-    let (contract_address, _) = contract.deploy(@constructor_calldata).unwrap();
+    let contract_address = contract.deploy(@constructor_calldata).unwrap();
     
     // Return dispatcher
     IMarketPlaceDispatcher { contract_address }
