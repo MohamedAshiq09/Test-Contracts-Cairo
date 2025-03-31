@@ -101,7 +101,7 @@ mod MarketPlace {
         self.platform_fee_percentage.write(platform_fee_percentage);
         self.platform_fee_recipient.write(platform_fee_recipient);
         self.listing_counter.write(1);
-        self.admin.write(platform_fee_recipient); // Or set to caller address
+        self.admin.write(platform_fee_recipient);  
     }
 
     #[external(v0)]

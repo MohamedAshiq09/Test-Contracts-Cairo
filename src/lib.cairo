@@ -43,7 +43,7 @@ mod marketplace {
 
     #[starknet::interface]
     pub trait IMarketPlace<TContractState> {
-        // View functions
+  
         fn get_listing(self: @TContractState, listing_id: felt252) -> Listing;
         fn is_token_sold(self: @TContractState, token_id: felt252) -> bool;
         fn get_platform_fee(self: @TContractState) -> (u16, ContractAddress);
@@ -51,8 +51,7 @@ mod marketplace {
         fn get_token_royalty(self: @TContractState, token_id: felt252) -> (ContractAddress, u16);
         fn is_collection_approved(self: @TContractState, collection_address: ContractAddress) -> bool;
         fn get_admin(self: @TContractState) -> ContractAddress;
-
-        // External functions
+ 
         fn list_nft(
             ref self: TContractState,
             token_id: felt252,

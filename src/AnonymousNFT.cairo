@@ -46,27 +46,23 @@ mod AnonymousNFT {
 
     #[external(v0)]
     fn mint_anonymous(ref self: ContractState, commitment: felt252, proof: Array<felt252>) {
-        // In a real implementation, you would verify ZK proof here
+       
         // let is_valid = ZKVerifier::verify_proof(proof);
         // assert(is_valid == 1, "Invalid proof");
-        
-        // Ensure commitment doesn't already exist
+     
         assert(!self.commitment_exists.read(commitment), "Commitment already registered");
         
         let caller = get_caller_address();
-        
-        // Register the commitment
+         
         self.commitment_owner.write(commitment, caller);
         self.commitment_exists.write(commitment, true);
-        
-        // Update counters
+         
         let current_count = self.owner_commitment_count.read(caller);
         self.owner_commitment_count.write(caller, current_count + 1);
         
         let current_supply = self.total_supply.read();
         self.total_supply.write(current_supply + 1);
-        
-        // Emit event
+       
         self.emit(CommitmentRegistered { commitment, owner: caller });
     }
     
@@ -77,56 +73,54 @@ mod AnonymousNFT {
         new_owner: ContractAddress,
         ownership_proof: Array<felt252>
     ) {
-        // In a real implementation, you would verify ZK proof of ownership here
+         
         // let is_valid = ZKVerifier::verify_ownership(commitment, ownership_proof);
         // assert(is_valid == 1, "Invalid ownership proof");
         
         let caller = get_caller_address();
         let current_owner = self.commitment_owner.read(commitment);
         
-        // Verify ownership
+     
         assert(current_owner == caller, "Not the commitment owner");
         assert(self.commitment_exists.read(commitment), "Commitment does not exist");
         
-        // Transfer ownership
+         
         self.commitment_owner.write(commitment, new_owner);
-        
-        // Update counters
+  
         let current_owner_count = self.owner_commitment_count.read(caller);
         self.owner_commitment_count.write(caller, current_owner_count - 1);
         
         let new_owner_count = self.owner_commitment_count.read(new_owner);
         self.owner_commitment_count.write(new_owner, new_owner_count + 1);
         
-        // Emit event
+ 
         self.emit(CommitmentTransferred { commitment, new_owner });
     }
     
     #[external(v0)]
     fn burn_anonymous(ref self: ContractState, commitment: felt252, ownership_proof: Array<felt252>) {
-        // In a real implementation, you would verify ZK proof of ownership here
+         
         // let is_valid = ZKVerifier::verify_ownership(commitment, ownership_proof);
         // assert(is_valid == 1, "Invalid ownership proof");
         
         let caller = get_caller_address();
         let current_owner = self.commitment_owner.read(commitment);
         
-        // Verify ownership
+        
         assert(current_owner == caller, "Not the commitment owner");
         assert(self.commitment_exists.read(commitment), "Commitment does not exist");
         
-        // Burn the commitment
+        
         self.commitment_owner.write(commitment, Zeroable::zero());
         self.commitment_exists.write(commitment, false);
         
-        // Update counters
+  
         let current_count = self.owner_commitment_count.read(caller);
         self.owner_commitment_count.write(caller, current_count - 1);
         
         let current_supply = self.total_supply.read();
         self.total_supply.write(current_supply - 1);
-        
-        // Emit event
+ 
         self.emit(CommitmentBurned { commitment });
     }
     
