@@ -82,8 +82,13 @@ mod MarketPlace {
         collection_approval: LegacyMap::<ContractAddress, bool>,
         listing_counter: felt252,
         token_royalties: LegacyMap::<felt252, (ContractAddress, u16)>,
+        admin: ContractAddress,
     }
 
+    #[view]
+    fn get_admin(self: @ContractState) -> ContractAddress {
+     self.admin.read()
+    }
     #[constructor]
     fn constructor(
         ref self: ContractState,
@@ -96,6 +101,7 @@ mod MarketPlace {
         self.platform_fee_percentage.write(platform_fee_percentage);
         self.platform_fee_recipient.write(platform_fee_recipient);
         self.listing_counter.write(1);
+        self.admin.write(platform_fee_recipient); // Or set to caller address
     }
 
     #[external(v0)]

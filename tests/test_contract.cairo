@@ -74,8 +74,9 @@ fn deploy_marketplace() -> IMarketPlaceDispatcher {
     let contract = declare("MarketPlace").unwrap();
     let fee_percentage: u16 = 250; // 2.5%
     let fee_recipient = contract_address_const::<0x456>();
-    let admin = contract_address_const::<0x123>();
-    let constructor_calldata = array![fee_percentage.into(), fee_recipient.into(), admin.into()];
+    
+    // Remove the admin parameter since it's not in the actual constructor
+    let constructor_calldata = array![fee_percentage.into(), fee_recipient.into()];
     let (contract_address, _) = contract.deploy(@constructor_calldata).unwrap();
     
     // Return dispatcher
