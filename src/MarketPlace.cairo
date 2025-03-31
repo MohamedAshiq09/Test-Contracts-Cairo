@@ -106,28 +106,24 @@ mod MarketPlace {
         expiration: u64,
         proof: Array<felt252>
     ) -> felt252 {
-        // Get caller address
+     
         let caller = get_caller_address();
         assert(!caller.is_zero(), 'Invalid caller');
         assert(price > 0, 'Price must be positive');
         
-        // In a real implementation, you would verify ZK proof here
-        // let commitment = AnonymousNFT::get_commitment(token_id);
+       
         
-        let commitment = token_id; // Simplified for this example
+        let commitment = token_id;
         
-        // Get a unique listing ID
         let listing_id = self.listing_counter.read();
         self.listing_counter.write(listing_id + 1);
         
-        // Set expiration (0 means no expiration)
         let expiration_timestamp = if expiration == 0 {
             0
         } else {
             get_block_timestamp() + expiration
         };
         
-        // Create and store the listing
         self.listings.write(
             listing_id, 
             Listing { 
@@ -139,15 +135,13 @@ mod MarketPlace {
                 active: true
             }
         );
-        
-        // Emit event
+    
         self.emit(Event::ListingCreated(ListingCreated {
             listing_id,
             seller: caller,
             price
         }));
-        
-        // Return the listing ID
+       
         listing_id
     }
 
@@ -158,29 +152,23 @@ mod MarketPlace {
         new_price: felt252,
         new_expiration: u64
     ) {
-        // Get caller address
+
         let caller = get_caller_address();
         
-        // Get current listing
         let mut listing = self.listings.read(listing_id);
-        
-        // Verify ownership
+       
         assert(listing.seller == caller, 'Not the seller');
         assert(listing.active, 'Listing not active');
         assert(new_price > 0, 'Price must be positive');
-        
-        // Update listing
+  
         listing.price = new_price;
-        
-        // Update expiration if provided
+     
         if new_expiration > 0 {
             listing.expiration = get_block_timestamp() + new_expiration;
         }
-        
-        // Write updated listing
+
         self.listings.write(listing_id, listing);
-        
-        // Emit event
+    
         self.emit(Event::ListingUpdated(ListingUpdated {
             listing_id,
             price: new_price
@@ -189,21 +177,19 @@ mod MarketPlace {
 
     #[external(v0)]
     fn cancel_listing(ref self: ContractState, listing_id: felt252) {
-        // Get caller address
+ 
         let caller = get_caller_address();
-        
-        // Get current listing
+   
         let mut listing = self.listings.read(listing_id);
-        
-        // Verify ownership
+    
         assert(listing.seller == caller, 'Not the seller');
         assert(listing.active, 'Listing not active');
         
-        // Deactivate listing
+      
         listing.active = false;
         self.listings.write(listing_id, listing);
         
-        // Emit event
+        
         self.emit(Event::ListingCancelled(ListingCancelled {
             listing_id
         }));
@@ -214,24 +200,22 @@ mod MarketPlace {
         let caller = get_caller_address();
         let listing = self.listings.read(listing_id);
         
-        // Verify listing is active and not expired
+       
         assert(listing.active, 'Listing not active');
         if listing.expiration > 0 {
             assert(get_block_timestamp() <= listing.expiration, 'Listing expired');
         }
         
-        // In a real implementation, you would verify ZK proof here
-        // Also would handle token transfer and payment processing
-        
-        // Mark token as sold
+       
+  
         self.sold_tokens.write(listing.token_id, true);
         
-        // Deactivate listing
+        
         let mut updated_listing = listing;
         updated_listing.active = false;
         self.listings.write(listing_id, updated_listing);
         
-        // Emit sold event
+    
         self.emit(Event::TokenSold(TokenSold {
             listing_id,
             buyer: caller,
@@ -249,23 +233,23 @@ mod MarketPlace {
         let caller = get_caller_address();
         let listing = self.listings.read(listing_id);
         
-        // Verify listing exists and is active
+       
         assert(listing.active, 'Listing not active');
         if listing.expiration > 0 {
             assert(get_block_timestamp() <= listing.expiration, 'Listing expired');
         }
         
-        // Verify offer parameters
+     
         assert(offer_price > 0, 'Offer price must be positive');
         
-        // Set expiration (0 means no expiration)
+       
         let expiration_timestamp = if expiration == 0 {
             0
         } else {
             get_block_timestamp() + expiration
         };
         
-        // Create and store the offer
+     
         self.offers.write(
             (listing_id, caller), 
             Offer {
@@ -276,7 +260,7 @@ mod MarketPlace {
             }
         );
         
-        // Emit offer event
+      
         self.emit(Event::OfferCreated(OfferCreated {
             listing_id,
             buyer: caller,
@@ -294,35 +278,35 @@ mod MarketPlace {
         let listing = self.listings.read(listing_id);
         let offer = self.offers.read((listing_id, buyer));
         
-        // Verify listing ownership
+      
         assert(listing.seller == caller, 'Not the seller');
         assert(listing.active, 'Listing not active');
         
-        // Verify offer validity
+       
         assert(offer.buyer == buyer, 'Invalid buyer');
         assert(offer.offer_price > 0, 'Invalid offer');
         
-        // Check offer expiration
+     
         if offer.expiration > 0 {
             assert(get_block_timestamp() <= offer.expiration, 'Offer expired');
         }
         
-        // Mark token as sold
+        
         self.sold_tokens.write(listing.token_id, true);
         
-        // Deactivate listing
+       
         let mut updated_listing = listing;
         updated_listing.active = false;
         self.listings.write(listing_id, updated_listing);
         
-        // Emit event
+        
         self.emit(Event::OfferAccepted(OfferAccepted {
             listing_id,
             buyer,
             price: offer.offer_price
         }));
         
-        // In a real implementation, handle token transfer and payment here
+        
     }
 
     #[external(v0)]
@@ -330,7 +314,7 @@ mod MarketPlace {
         ref self: ContractState,
         new_fee_percentage: u16
     ) {
-        // This would typically have admin checks
+       
         assert(new_fee_percentage <= 1000, 'Fee must be <= 10%');
         
         self.platform_fee_percentage.write(new_fee_percentage);
@@ -341,7 +325,7 @@ mod MarketPlace {
         ref self: ContractState,
         new_recipient: ContractAddress
     ) {
-        // This would typically have admin checks
+       
         assert(!new_recipient.is_zero(), 'Invalid recipient');
         
         self.platform_fee_recipient.write(new_recipient);
@@ -354,7 +338,7 @@ mod MarketPlace {
         recipient: ContractAddress,
         royalty_percentage: u16
     ) {
-        // This would typically have checks to ensure the caller is authorized
+       
         assert(!recipient.is_zero(), 'Invalid recipient');
         assert(royalty_percentage <= 1000, 'Royalty must be <= 10%');
         
@@ -367,7 +351,7 @@ mod MarketPlace {
         collection_address: ContractAddress,
         approved: bool
     ) {
-        // This would typically have admin checks
+      
         assert(!collection_address.is_zero(), 'Invalid collection');
         
         self.collection_approval.write(collection_address, approved);
