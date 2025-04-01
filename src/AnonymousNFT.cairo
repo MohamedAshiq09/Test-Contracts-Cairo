@@ -89,30 +89,6 @@ mod AnonymousNFT {
     }
     
     #[external(v0)]
-    fn mint_anonymous(ref self: ContractState, commitment: felt252, proof: Array<felt252>) {
-        // Call the ZK Verifier to validate the proof
-        let verifier_address = self.zk_verifier.read();
-        let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
-        let is_valid = verifier_dispatcher.verify_proof(proof);
-        
-        assert(is_valid == 1, "Invalid proof");
-        assert(!self.commitment_exists.read(commitment), "Commitment already registered");
-        
-        let caller = get_caller_address();
-         
-        self.commitment_owner.write(commitment, caller);
-        self.commitment_exists.write(commitment, true);
-         
-        let current_count = self.owner_commitment_count.read(caller);
-        self.owner_commitment_count.write(caller, current_count + 1);
-        
-        let current_supply = self.total_supply.read();
-        self.total_supply.write(current_supply + 1);
-       
-        self.emit(CommitmentRegistered { commitment, owner: caller });
-    }
-    
-    #[external(v0)]
     fn transfer_anonymous(
         ref self: ContractState, 
         commitment: felt252, 

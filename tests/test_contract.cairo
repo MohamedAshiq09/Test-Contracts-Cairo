@@ -1,19 +1,25 @@
 use starknet::{ContractAddress, contract_address_const};
 use starknet::testing::set_caller_address;
-use debug::PrintTrait;
+use core::debug::PrintTrait;  // Changed from debug::PrintTrait
 
+// Make sure snforge_std is a dependency in your Scarb.toml
 use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank, CheatTarget};
 
-use contract::lib::anonymous_nft::{IAnonymousNFTDispatcher, IAnonymousNFTDispatcherTrait};
-use contract::lib::marketplace::{IMarketPlaceDispatcher, IMarketPlaceDispatcherTrait};
-use contract::lib::zk_verifier::{IZKVerifierDispatcher, IZKVerifierDispatcherTrait};
+// Fix the import paths - assuming the correct structure is inside src/
+use super::super::src::lib::anonymous_nft::{IAnonymousNFTDispatcher, IAnonymousNFTDispatcherTrait};
+use super::super::src::lib::marketplace::{IMarketPlaceDispatcher, IMarketPlaceDispatcherTrait, Listing, Offer};
+use super::super::src::lib::zk_verifier::{IZKVerifierDispatcher, IZKVerifierDispatcherTrait};
 
 fn deploy_zk_verifier() -> IZKVerifierDispatcher {
     let contract = declare("ZKVerifier");
     let admin_address = contract_address_const::<0x123>();
     let constructor_calldata = array![admin_address.into()];
     
-    let contract_address = contract.deploy(@constructor_calldata).unwrap();
+    // Fix the deploy and unwrap calls
+    let contract_address = match contract {
+        Result::Ok(declared) => declared.deploy(@constructor_calldata).expect('Deploy failed'),
+        Result::Err(err) => panic!("Declaration failed")
+    };
     
     IZKVerifierDispatcher { contract_address }
 }
@@ -25,7 +31,11 @@ fn deploy_anonymous_nft() -> IAnonymousNFTDispatcher {
     let admin_address = contract_address_const::<0x123>();
     let constructor_calldata = array![admin_address.into(), verifier_dispatcher.contract_address.into()];
    
-    let contract_address = contract.deploy(@constructor_calldata).unwrap();
+    // Fix the deploy and unwrap calls
+    let contract_address = match contract {
+        Result::Ok(declared) => declared.deploy(@constructor_calldata).expect('Deploy failed'),
+        Result::Err(err) => panic!("Declaration failed")
+    };
     
     IAnonymousNFTDispatcher { contract_address }
 }
@@ -36,7 +46,12 @@ fn deploy_marketplace() -> IMarketPlaceDispatcher {
     let fee_recipient = contract_address_const::<0x456>();
     
     let constructor_calldata = array![fee_percentage.into(), fee_recipient.into()];
-    let contract_address = contract.deploy(@constructor_calldata).unwrap();
+    
+    // Fix the deploy and unwrap calls
+    let contract_address = match contract {
+        Result::Ok(declared) => declared.deploy(@constructor_calldata).expect('Deploy failed'),
+        Result::Err(err) => panic!("Declaration failed")
+    };
     
     IMarketPlaceDispatcher { contract_address }
 }
