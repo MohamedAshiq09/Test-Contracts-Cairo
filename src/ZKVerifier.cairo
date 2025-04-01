@@ -13,7 +13,7 @@ mod ZKVerifier {
     }
     
     #[external(v0)]
-    fn verify_proof(proof: Array<felt252>) -> felt252 {
+    fn verify_proof(self: @ContractState, proof: Array<felt252>) -> felt252 {
         // This is a placeholder for actual ZK proof verification
         // In a real implementation, you would include cryptographic verification
         // using a library like cairo-groth16 or cairo-stark
@@ -24,7 +24,7 @@ mod ZKVerifier {
     }
     
     #[external(v0)]
-    fn verify_ownership(commitment: felt252, proof: Array<felt252>) -> felt252 {
+    fn verify_ownership(self: @ContractState, commitment: felt252, proof: Array<felt252>) -> felt252 {
         // This is a placeholder for actual ownership proof verification
         // In a real implementation, you would verify that the prover knows the
         // secret associated with the commitment

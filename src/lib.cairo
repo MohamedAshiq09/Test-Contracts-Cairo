@@ -105,11 +105,13 @@ mod marketplace {
 }
 
 mod zk_verifier {
+    use starknet::ContractAddress;
+
     #[starknet::interface]
     pub trait IZKVerifier<TContractState> {
-        fn verify_proof(proof: Array<felt252>) -> felt252;
-        fn verify_ownership(commitment: felt252, proof: Array<felt252>) -> felt252;
-        fn get_admin(self: @TContractState) -> starknet::ContractAddress;
-        fn set_admin(ref self: TContractState, new_admin: starknet::ContractAddress);
+        fn verify_proof(self: @TContractState, proof: Array<felt252>) -> felt252;
+        fn verify_ownership(self: @TContractState, commitment: felt252, proof: Array<felt252>) -> felt252;
+        fn get_admin(self: @TContractState) -> ContractAddress;
+        fn set_admin(ref self: TContractState, new_admin: ContractAddress);
     }
 }

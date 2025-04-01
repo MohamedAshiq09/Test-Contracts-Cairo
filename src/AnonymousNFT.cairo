@@ -53,17 +53,41 @@ mod AnonymousNFT {
     // ZK Verifier Interface
     #[starknet::interface]
     trait IZKVerifier<T> {
-        fn verify_proof(proof: Array<felt252>) -> felt252;
-        fn verify_ownership(commitment: felt252, proof: Array<felt252>) -> felt252;
-    }
-    
-    // Generate ZK Verifier Dispatcher
-    #[starknet::interface]
-    trait IZKVerifierDispatcherTrait<T> {
-        fn verify_proof(proof: Array<felt252>) -> felt252;
-        fn verify_ownership(commitment: felt252, proof: Array<felt252>) -> felt252;
+        fn verify_proof(self: @T, proof: Array<felt252>) -> felt252;
+        fn verify_ownership(self: @T, commitment: felt252, proof: Array<felt252>) -> felt252;
     }
 
+    // Generate ZK Verifier Dispatcher
+    #[starknet::interface]
+     trait IZKVerifierDispatcherTrait<T> {
+       fn verify_proof(self: @T, proof: Array<felt252>) -> felt252;
+       fn verify_ownership(self: @T, commitment: felt252, proof: Array<felt252>) -> felt252;
+    }
+
+    #[external(v0)]
+    fn mint_anonymous(ref self: ContractState, commitment: felt252, proof: Array<felt252>) {
+        // Call the ZK Verifier to validate the proof
+        let verifier_address = self.zk_verifier.read();
+        let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
+        let is_valid = verifier_dispatcher.verify_proof(proof);
+        
+        assert(is_valid == 1, "Invalid proof");
+        assert(!self.commitment_exists.read(commitment), "Commitment already registered");
+        
+        let caller = get_caller_address();
+         
+        self.commitment_owner.write(commitment, caller);
+        self.commitment_exists.write(commitment, true);
+         
+        let current_count = self.owner_commitment_count.read(caller);
+        self.owner_commitment_count.write(caller, current_count + 1);
+        
+        let current_supply = self.total_supply.read();
+        self.total_supply.write(current_supply + 1);
+       
+        self.emit(CommitmentRegistered { commitment, owner: caller });
+    }
+    
     #[external(v0)]
     fn mint_anonymous(ref self: ContractState, commitment: felt252, proof: Array<felt252>) {
         // Call the ZK Verifier to validate the proof
@@ -109,7 +133,7 @@ mod AnonymousNFT {
         assert(self.commitment_exists.read(commitment), "Commitment does not exist");
         
         self.commitment_owner.write(commitment, new_owner);
-  
+    
         let current_owner_count = self.owner_commitment_count.read(caller);
         self.owner_commitment_count.write(caller, current_owner_count - 1);
         
@@ -142,7 +166,7 @@ mod AnonymousNFT {
         
         let current_supply = self.total_supply.read();
         self.total_supply.write(current_supply - 1);
- 
+    
         self.emit(CommitmentBurned { commitment });
     }
     
