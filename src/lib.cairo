@@ -16,7 +16,9 @@ mod anonymous_nft {
         fn get_owner_commitment_count(self: @TContractState, owner: ContractAddress) -> u256;
         fn get_total_supply(self: @TContractState) -> u256;
         fn get_admin(self: @TContractState) -> ContractAddress;
+        fn get_verifier(self: @TContractState) -> ContractAddress;
         fn set_admin(ref self: TContractState, new_admin: ContractAddress);
+        fn set_verifier(ref self: TContractState, new_verifier: ContractAddress);
     }
 }
 
@@ -43,7 +45,6 @@ mod marketplace {
 
     #[starknet::interface]
     pub trait IMarketPlace<TContractState> {
-  
         fn get_listing(self: @TContractState, listing_id: felt252) -> Listing;
         fn is_token_sold(self: @TContractState, token_id: felt252) -> bool;
         fn get_platform_fee(self: @TContractState) -> (u16, ContractAddress);
@@ -100,5 +101,15 @@ mod marketplace {
             collection_address: ContractAddress,
             approved: bool
         );
+    }
+}
+
+mod zk_verifier {
+    #[starknet::interface]
+    pub trait IZKVerifier<TContractState> {
+        fn verify_proof(proof: Array<felt252>) -> felt252;
+        fn verify_ownership(commitment: felt252, proof: Array<felt252>) -> felt252;
+        fn get_admin(self: @TContractState) -> starknet::ContractAddress;
+        fn set_admin(ref self: TContractState, new_admin: starknet::ContractAddress);
     }
 }

@@ -1,78 +1,36 @@
-// use starknet::ContractAddress;
-
-// use snforge_std::{declare, ContractClassTrait, DeclareResultTrait};
-
-// use contract::IHelloStarknetSafeDispatcher;
-// use contract::IHelloStarknetSafeDispatcherTrait;
-// use contract::IHelloStarknetDispatcher;
-// use contract::IHelloStarknetDispatcherTrait;
-
-// fn deploy_contract(name: ByteArray) -> ContractAddress {
-//     let contract = declare(name).unwrap().contract_class();
-//     let (contract_address, _) = contract.deploy(@ArrayTrait::new()).unwrap();
-//     contract_address
-// }
-
-// #[test]
-// fn test_increase_balance() {
-//     let contract_address = deploy_contract("HelloStarknet");
-
-//     let dispatcher = IHelloStarknetDispatcher { contract_address };
-
-//     let balance_before = dispatcher.get_balance();
-//     assert(balance_before == 0, 'Invalid balance');
-
-//     dispatcher.increase_balance(42);
-
-//     let balance_after = dispatcher.get_balance();
-//     assert(balance_after == 42, 'Invalid balance');
-// }
-
-// #[test]
-// #[feature("safe_dispatcher")]
-// fn test_cannot_increase_balance_with_zero_value() {
-//     let contract_address = deploy_contract("HelloStarknet");
-
-//     let safe_dispatcher = IHelloStarknetSafeDispatcher { contract_address };
-
-//     let balance_before = safe_dispatcher.get_balance().unwrap();
-//     assert(balance_before == 0, 'Invalid balance');
-
-//     match safe_dispatcher.increase_balance(0) {
-//         Result::Ok(_) => core::panic_with_felt252('Should have panicked'),
-//         Result::Err(panic_data) => {
-//             assert(*panic_data.at(0) == 'Amount cannot be 0', *panic_data.at(0));
-//         }
-//     };
-// }
-
 use starknet::{ContractAddress, contract_address_const};
 use starknet::testing::set_caller_address;
 use debug::PrintTrait;
 
-
 use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank, CheatTarget};
-
 
 use contract::lib::anonymous_nft::{IAnonymousNFTDispatcher, IAnonymousNFTDispatcherTrait};
 use contract::lib::marketplace::{IMarketPlaceDispatcher, IMarketPlaceDispatcherTrait};
+use contract::lib::zk_verifier::{IZKVerifierDispatcher, IZKVerifierDispatcherTrait};
 
-
-fn deploy_anonymous_nft() -> IAnonymousNFTDispatcher {
- 
-    let contract = declare("AnonymousNFT");
+fn deploy_zk_verifier() -> IZKVerifierDispatcher {
+    let contract = declare("ZKVerifier");
     let admin_address = contract_address_const::<0x123>();
     let constructor_calldata = array![admin_address.into()];
+    
+    let contract_address = contract.deploy(@constructor_calldata).unwrap();
+    
+    IZKVerifierDispatcher { contract_address }
+}
+
+fn deploy_anonymous_nft() -> IAnonymousNFTDispatcher {
+    let verifier_dispatcher = deploy_zk_verifier();
+    
+    let contract = declare("AnonymousNFT");
+    let admin_address = contract_address_const::<0x123>();
+    let constructor_calldata = array![admin_address.into(), verifier_dispatcher.contract_address.into()];
    
     let contract_address = contract.deploy(@constructor_calldata).unwrap();
     
-   
     IAnonymousNFTDispatcher { contract_address }
 }
 
-
 fn deploy_marketplace() -> IMarketPlaceDispatcher {
-  
     let contract = declare("MarketPlace");
     let fee_percentage: u16 = 250; // 2.5%
     let fee_recipient = contract_address_const::<0x456>();
@@ -80,13 +38,11 @@ fn deploy_marketplace() -> IMarketPlaceDispatcher {
     let constructor_calldata = array![fee_percentage.into(), fee_recipient.into()];
     let contract_address = contract.deploy(@constructor_calldata).unwrap();
     
-
     IMarketPlaceDispatcher { contract_address }
 }
 
 #[test]
 fn test_anonymous_nft_mint() {
-    
     let nft_dispatcher = deploy_anonymous_nft();
     
     let user = contract_address_const::<0x567>();
@@ -109,11 +65,9 @@ fn test_anonymous_nft_mint() {
 
 #[test]
 fn test_marketplace_listing_and_purchase() {
-  
     let nft_dispatcher = deploy_anonymous_nft();
     let market_dispatcher = deploy_marketplace();
     
-   
     let seller = contract_address_const::<0x567>();
     let buyer = contract_address_const::<0x789>();
    
@@ -147,7 +101,6 @@ fn test_marketplace_listing_and_purchase() {
 
 #[test]
 fn test_offer_and_acceptance() {
-
     let nft_dispatcher = deploy_anonymous_nft();
     let market_dispatcher = deploy_marketplace();
    
@@ -185,4 +138,18 @@ fn test_offer_and_acceptance() {
     
     let updated_listing = market_dispatcher.get_listing(listing_id);
     assert(!updated_listing.active, 'Listing should not be active');
+}
+
+#[test]
+fn test_zk_verifier() {
+    let verifier = deploy_zk_verifier();
+    
+    let proof: Array<felt252> = array![];
+    let commitment: felt252 = 123;
+    
+    let proof_result = verifier.verify_proof(proof);
+    assert(proof_result == 1, 'Proof should be valid');
+    
+    let ownership_result = verifier.verify_ownership(commitment, proof);
+    assert(ownership_result == 1, 'Ownership proof should be valid');
 }
