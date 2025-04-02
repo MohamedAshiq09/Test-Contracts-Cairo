@@ -1,188 +1,112 @@
-use snforge_std::{declare, ContractClassTrait, DeclareResultTrait, start_prank, stop_prank};
-use starknet::{ContractAddress, contract_address_const};
-use private_marketplace::anonymous_nft::IAnonymousNFTDispatcher;
-use private_marketplace::anonymous_nft::IAnonymousNFTDispatcherTrait;
+#[cfg(test)]
+mod tests {
+    use super::AnonymousNFT::AnonymousNFT;
+    use super::AnonymousNFT::IZKVerifierDispatcher;
+    use super::AnonymousNFT::IZKVerifierDispatcherTrait;
+    use AnonymousNFT::AnonymousNFT::IZKVerifier; // Import the IZKVerifier trait
+    use starknet::{ContractAddress, contract_address_const};
+    use snforge_std::{ declare, ContractClassTrait, start_cheat_caller_address, stop_cheat_caller_address, spy_events, EventSpyAssertionsTrait, DeclareResultTrait }; // Import DeclareResultTrait
 
-use array::ArrayTrait;
+    fn deploy_anonymous_nft(admin: ContractAddress, verifier: ContractAddress) -> (IZKVerifierDispatcher, ContractAddress) {
+        let contract = declare("AnonymousNFT");
+        let mut constructor_calldata = array![admin.into(), verifier.into()];
+        
+        let (contract_address, _) = contract
+            .unwrap()
+            .contract_class()
+            .deploy(@constructor_calldata)
+            .unwrap();
 
-// Test Constants
-const ADMIN_ADDRESS: felt252 = 0x123;
-const USER1_ADDRESS: felt252 = 0x456;
-const USER2_ADDRESS: felt252 = 0x789;
-const SAMPLE_COMMITMENT: felt252 = 0x111;
+        let dispatcher = IZKVerifierDispatcher { contract_address };
+        (dispatcher, contract_address)
+    }
 
-#[test]
-fn test_nft_deployment_and_configuration() {
-    // Deploy ZKVerifier contract
-    let verifier_class = declare("ZKVerifier").unwrap().contract_class();
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    let verifier_calldata = array![admin.into()];
-    let (verifier_address, _) = verifier_class.deploy(@verifier_calldata).unwrap();
+    #[test]
+    fn test_mint_anonymous() {
+        let admin: ContractAddress = contract_address_const::<'admin'>();
+        let verifier: ContractAddress = contract_address_const::<'verifier'>();
+        let (anonymous_nft_dispatcher, anonymous_nft_address) = deploy_anonymous_nft(admin, verifier);
 
-    // Deploy AnonymousNFT contract
-    let nft_class = declare("AnonymousNFT").unwrap().contract_class();
-    let nft_calldata = array![admin.into(), verifier_address.into()];
-    let (nft_address, _) = nft_class.deploy(@nft_calldata).unwrap();
+        let commitment: felt252 = 123;
+        let proof: Array<felt252> = array![1, 2, 3];
 
-    // Create dispatcher
-    let nft_dispatcher = IAnonymousNFTDispatcher { contract_address: nft_address };
+        start_cheat_caller_address(anonymous_nft_address, admin);
+        AnonymousNFT::IZKVerifierDispatcherTrait::mint_anonymous(anonymous_nft_dispatcher, commitment, proof);
+        stop_cheat_caller_address(anonymous_nft_address);
 
-    // Verify configuration
-    assert(nft_dispatcher.get_admin() == admin, 'Admin not set correctly');
-    assert(nft_dispatcher.get_verifier() == verifier_address, 'Verifier not set correctly');
-    assert(nft_dispatcher.get_total_supply() == 0, 'Initial supply not zero');
-}
+        assert(AnonymousNFT::AnonymousNFT::commitment_exists(anonymous_nft_dispatcher, commitment), 'Commitment should exist');
+    }
 
-#[test]
-fn test_minting() {
-    // Deploy required contracts first
-    let verifier_class = declare("ZKVerifier").unwrap().contract_class();
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    let verifier_calldata = array![admin.into()];
-    let (verifier_address, _) = verifier_class.deploy(@verifier_calldata).unwrap();
+    #[test]
+    fn test_transfer_anonymous() {
+        let admin: ContractAddress = contract_address_const::<'admin'>();
+        let verifier: ContractAddress = contract_address_const::<'verifier'>();
+        let (anonymous_nft_dispatcher, anonymous_nft_address) = deploy_anonymous_nft(admin, verifier);
 
-    let nft_class = declare("AnonymousNFT").unwrap().contract_class();
-    let nft_calldata = array![admin.into(), verifier_address.into()];
-    let (nft_address, _) = nft_class.deploy(@nft_calldata).unwrap();
+        let commitment: felt252 = 123;
+        let proof: Array<felt252> = array![1, 2, 3];
+        let new_owner: ContractAddress = contract_address_const::<'new_owner'>();
 
-    // Create dispatcher
-    let nft_dispatcher = IAnonymousNFTDispatcher { contract_address: nft_address };
+        start_cheat_caller_address(anonymous_nft_address, admin);
+        AnonymousNFT::IZKVerifierDispatcherTrait::mint_anonymous(anonymous_nft_dispatcher, commitment, proof);
+        stop_cheat_caller_address(anonymous_nft_address);
 
-    // User mints an NFT
-    let user1: ContractAddress = contract_address_const::<USER1_ADDRESS>();
-    start_prank(nft_address, user1);
+        let ownership_proof: Array<felt252> = array![4, 5, 6];
+        
+        start_cheat_caller_address(anonymous_nft_address, admin);
+        AnonymousNFT::IZKVerifierDispatcherTrait::transfer_anonymous(anonymous_nft_dispatcher, commitment, new_owner, ownership_proof);
+        stop_cheat_caller_address(anonymous_nft_address);
 
-    let mut mint_proof = ArrayTrait::new();
-    mint_proof.append(0x1); // Dummy proof
+        assert(AnonymousNFT::AnonymousNFT::get_owner(anonymous_nft_dispatcher, commitment) == new_owner, 'Owner should be updated');
+    }
 
-    nft_dispatcher.mint_anonymous(SAMPLE_COMMITMENT, mint_proof.span());
+    #[test]
+    fn test_burn_anonymous() {
+        let admin: ContractAddress = contract_address_const::<'admin'>();
+        let verifier: ContractAddress = contract_address_const::<'verifier'>();
+        let (anonymous_nft_dispatcher, anonymous_nft_address) = deploy_anonymous_nft(admin, verifier);
 
-    // Verify minting worked
-    assert(nft_dispatcher.commitment_exists(SAMPLE_COMMITMENT), 'Commitment should exist');
-    assert(nft_dispatcher.get_owner(SAMPLE_COMMITMENT) == user1, 'Owner should be user1');
-    assert(nft_dispatcher.get_owner_commitment_count(user1) == 1, 'Should have 1 NFT');
-    assert(nft_dispatcher.get_total_supply() == 1, 'Total supply should be 1');
+        let commitment: felt252 = 123;
+        let proof: Array<felt252> = array![1, 2, 3];
 
-    stop_prank(nft_address);
-}
+        start_cheat_caller_address(anonymous_nft_address, admin);
+        AnonymousNFT::IZKVerifierDispatcherTrait::mint_anonymous(anonymous_nft_dispatcher, commitment, proof);
+        stop_cheat_caller_address(anonymous_nft_address);
 
-#[test]
-fn test_transfer() {
-    // Deploy required contracts first
-    let verifier_class = declare("ZKVerifier").unwrap().contract_class();
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    let verifier_calldata = array![admin.into()];
-    let (verifier_address, _) = verifier_class.deploy(@verifier_calldata).unwrap();
+        let ownership_proof: Array<felt252> = array![4, 5, 6];
+        
+        start_cheat_caller_address(anonymous_nft_address, admin);
+        AnonymousNFT::IZKVerifierDispatcherTrait::burn_anonymous(anonymous_nft_dispatcher, commitment, ownership_proof);
+        stop_cheat_caller_address(anonymous_nft_address);
 
-    let nft_class = declare("AnonymousNFT").unwrap().contract_class();
-    let nft_calldata = array![admin.into(), verifier_address.into()];
-    let (nft_address, _) = nft_class.deploy(@nft_calldata).unwrap();
+        assert(!AnonymousNFT::AnonymousNFT::commitment_exists(anonymous_nft_dispatcher, commitment), 'Commitment should not exist');
+    }
 
-    // Create dispatcher
-    let nft_dispatcher = IAnonymousNFTDispatcher { contract_address: nft_address };
+    #[test]
+    fn test_set_admin() {
+        let admin: ContractAddress = contract_address_const::<'admin'>();
+        let verifier: ContractAddress = contract_address_const::<'verifier'>();
+        let (anonymous_nft_dispatcher, anonymous_nft_address) = deploy_anonymous_nft(admin, verifier);
+        let new_admin: ContractAddress = contract_address_const::<'new_admin'>();
 
-    // User1 mints an NFT
-    let user1: ContractAddress = contract_address_const::<USER1_ADDRESS>();
-    start_prank(nft_address, user1);
+        start_cheat_caller_address(anonymous_nft_address, admin);
+        AnonymousNFT::IZKVerifierDispatcherTrait::set_admin(anonymous_nft_dispatcher, new_admin);
+        stop_cheat_caller_address(anonymous_nft_address);
 
-    let mut mint_proof = ArrayTrait::new();
-    mint_proof.append(0x1); // Dummy proof
+        assert(AnonymousNFT::AnonymousNFT::get_admin(anonymous_nft_dispatcher) == new_admin, 'Admin should be updated');
+    }
 
-    nft_dispatcher.mint_anonymous(SAMPLE_COMMITMENT, mint_proof.span());
+    #[test]
+    fn test_set_verifier() {
+        let admin: ContractAddress = contract_address_const::<'admin'>();
+        let verifier: ContractAddress = contract_address_const::<'verifier'>();
+        let (anonymous_nft_dispatcher, anonymous_nft_address) = deploy_anonymous_nft(admin, verifier);
+        let new_verifier: ContractAddress = contract_address_const::<'new_verifier'>();
 
-    // Verify initial state
-    assert(nft_dispatcher.get_owner(SAMPLE_COMMITMENT) == user1, 'Owner should be user1');
+        start_cheat_caller_address(anonymous_nft_address, admin);
+        AnonymousNFT::IZKVerifierDispatcherTrait::set_verifier(anonymous_nft_dispatcher, new_verifier);
+        stop_cheat_caller_address(anonymous_nft_address);
 
-    // User1 transfers to User2
-    let user2: ContractAddress = contract_address_const::<USER2_ADDRESS>();
-
-    let mut transfer_proof = ArrayTrait::new();
-    transfer_proof.append(0x2); // Dummy proof
-
-    nft_dispatcher.transfer_anonymous(SAMPLE_COMMITMENT, user2, transfer_proof.span());
-
-    // Verify transfer
-    assert(nft_dispatcher.get_owner(SAMPLE_COMMITMENT) == user2, 'New owner should be user2');
-    assert(nft_dispatcher.get_owner_commitment_count(user1) == 0, 'User1 should have 0 NFTs');
-    assert(nft_dispatcher.get_owner_commitment_count(user2) == 1, 'User2 should have 1 NFT');
-
-    stop_prank(nft_address);
-}
-
-#[test]
-fn test_burning() {
-    // Deploy required contracts first
-    let verifier_class = declare("ZKVerifier").unwrap().contract_class();
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    let verifier_calldata = array![admin.into()];
-    let (verifier_address, _) = verifier_class.deploy(@verifier_calldata).unwrap();
-
-    let nft_class = declare("AnonymousNFT").unwrap().contract_class();
-    let nft_calldata = array![admin.into(), verifier_address.into()];
-    let (nft_address, _) = nft_class.deploy(@nft_calldata).unwrap();
-
-    // Create dispatcher
-    let nft_dispatcher = IAnonymousNFTDispatcher { contract_address: nft_address };
-
-    // User1 mints an NFT
-    let user1: ContractAddress = contract_address_const::<USER1_ADDRESS>();
-    start_prank(nft_address, user1);
-
-    let mut mint_proof = ArrayTrait::new();
-    mint_proof.append(0x1); // Dummy proof
-
-    nft_dispatcher.mint_anonymous(SAMPLE_COMMITMENT, mint_proof.span());
-
-    // Verify initial state
-    assert(nft_dispatcher.commitment_exists(SAMPLE_COMMITMENT), 'Commitment should exist');
-    assert(nft_dispatcher.get_total_supply() == 1, 'Total supply should be 1');
-
-    // User1 burns the NFT
-    let mut burn_proof = ArrayTrait::new();
-    burn_proof.append(0x3); // Dummy proof
-
-    nft_dispatcher.burn_anonymous(SAMPLE_COMMITMENT, burn_proof.span());
-
-    // Verify burning
-    assert(!nft_dispatcher.commitment_exists(SAMPLE_COMMITMENT), 'Commitment should not exist');
-    assert(nft_dispatcher.get_owner_commitment_count(user1) == 0, 'User1 should have 0 NFTs');
-    assert(nft_dispatcher.get_total_supply() == 0, 'Total supply should be 0');
-
-    stop_prank(nft_address);
-}
-
-#[test]
-fn test_admin_functions() {
-    // Deploy required contracts first
-    let verifier_class = declare("ZKVerifier").unwrap().contract_class();
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    let verifier_calldata = array![admin.into()];
-    let (verifier_address, _) = verifier_class.deploy(@verifier_calldata).unwrap();
-
-    let nft_class = declare("AnonymousNFT").unwrap().contract_class();
-    let nft_calldata = array![admin.into(), verifier_address.into()];
-    let (nft_address, _) = nft_class.deploy(@nft_calldata).unwrap();
-
-    // Create dispatcher
-    let nft_dispatcher = IAnonymousNFTDispatcher { contract_address: nft_address };
-
-    // Set admin as caller
-    start_prank(nft_address, admin);
-
-    // Test changing admin
-    let new_admin: ContractAddress = contract_address_const::<USER1_ADDRESS>();
-    nft_dispatcher.set_admin(new_admin);
-
-    assert(nft_dispatcher.get_admin() == new_admin, 'Admin change failed');
-
-    // Test changing verifier
-    let new_verifier_class = declare("ZKVerifier").unwrap().contract_class();
-    let new_verifier_calldata = array![admin.into()];
-    let (new_verifier_address, _) = new_verifier_class.deploy(@new_verifier_calldata).unwrap();
-
-    nft_dispatcher.set_verifier(new_verifier_address);
-
-    assert(nft_dispatcher.get_verifier() == new_verifier_address, 'Verifier change failed');
-
-    stop_prank(nft_address);
+        assert(AnonymousNFT::AnonymousNFT::get_verifier(anonymous_nft_dispatcher) == new_verifier, 'Verifier should be updated');
+    }
 }

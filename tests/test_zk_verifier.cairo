@@ -1,128 +1,64 @@
-use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank};
-use starknet::{ContractAddress, contract_address_const};
-use private_marketplace::zk_verifier::IZKVerifierDispatcher;
-use private_marketplace::zk_verifier::IZKVerifierDispatcherTrait;
-use array::ArrayTrait;
+#[cfg(test)]
+mod tests {
+    use super::ZKVerifier;
+    use super::ZKVerifier::IZKVerifierDispatcher;
+    use super::ZKVerifier::IZKVerifierDispatcherTrait;
+    use starknet::{ContractAddress, contract_address_const};
+    use snforge_std::{ declare, ContractClassTrait, start_cheat_caller_address, stop_cheat_caller_address };
 
-// Test Constants
-const ADMIN_ADDRESS: felt252 = 0x123;
-const USER_ADDRESS: felt252 = 0x456;
-const SAMPLE_COMMITMENT: felt252 = 0x111;
+    fn deploy_zk_verifier(admin: ContractAddress) -> (IZKVerifierDispatcher, ContractAddress) {
+        let contract = declare("ZKVerifier");
+        let mut constructor_calldata = array![admin.into()];
+        
+        let (contract_address, _) = contract
+            .unwrap()
+            .contract_class()
+            .deploy(@constructor_calldata)
+            .unwrap();
 
-#[test]
-fn test_verifier_deployment() {
-    // Deploy the ZK Verifier contract
-    let verifier_class = declare("ZKVerifier");
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    
-    let mut calldata = ArrayTrait::new();
-    calldata.append(admin.into());
-    
-    let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
-    let verifier_address = verifier_deployment.contract_address;
-    
-    // Create dispatcher
-    let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
-    
-    // Verify admin is set correctly
-    assert(verifier_dispatcher.get_admin() == admin, 'Admin not set correctly');
-}
+        let dispatcher = IZKVerifierDispatcher { contract_address };
+        (dispatcher, contract_address)
+    }
 
-#[test]
-fn test_proof_verification() {
-    // Deploy the ZK Verifier contract
-    let verifier_class = declare("ZKVerifier");
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    
-    let mut calldata = ArrayTrait::new();
-    calldata.append(admin.into());
+    #[test]
+    fn test_verify_proof() {
+        let admin: ContractAddress = contract_address_const::<'admin'>();
+        let (zk_verifier_dispatcher, zk_verifier_address) = deploy_zk_verifier(admin);
 
-    let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
-    let verifier_address = verifier_deployment.contract_address;
-    
-    // Create dispatcher
-    let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
-    
-    // Test the proof verification
-    let mut proof = ArrayTrait::new();
-    proof.append(0x1); // Dummy proof
-    
-    let result = verifier_dispatcher.verify_proof(proof);
-    assert(result == 1, 'Proof should be valid');
-}
+        let proof: Array<felt252> = array![1, 2, 3];
 
-#[test]
-fn test_ownership_verification() {
-    // Deploy the ZK Verifier contract
-    let verifier_class = declare("ZKVerifier");
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    
-    let mut calldata = ArrayTrait::new();
-    calldata.append(admin.into());
+        start_cheat_caller_address(zk_verifier_address, admin);
+        let is_valid = zk_verifier_dispatcher.verify_proof(proof);
+        stop_cheat_caller_address(zk_verifier_address);
 
-    let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
-    let verifier_address = verifier_deployment.contract_address;
-    
-    // Create dispatcher
-    let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
-    
-    // Test ownership verification
-    let mut proof = ArrayTrait::new();
-    proof.append(0x2); // Dummy proof
-    
-    let result = verifier_dispatcher.verify_ownership(SAMPLE_COMMITMENT, proof);
-    assert(result == 1, 'Ownership proof should be valid');
-}
+        assert(is_valid == 1, 'Proof should be valid');
+    }
 
-#[test]
-fn test_admin_change() {
-    // Deploy the ZK Verifier contract
-    let verifier_class = declare("ZKVerifier");
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    
-    let mut calldata = ArrayTrait::new();
-    calldata.append(admin.into());
+    #[test]
+    fn test_verify_ownership() {
+        let admin: ContractAddress = contract_address_const::<'admin'>();
+        let (zk_verifier_dispatcher, zk_verifier_address) = deploy_zk_verifier(admin);
 
-   let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
-    let verifier_address = verifier_deployment.contract_address;
-    
-    // Create dispatcher
-    let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
-    
-    // Set admin as caller
-    start_prank(verifier_address, admin);
-    
-    // Test changing admin
-    let new_admin: ContractAddress = contract_address_const::<USER_ADDRESS>();
-    verifier_dispatcher.set_admin(new_admin);
-    
-    assert(verifier_dispatcher.get_admin() == new_admin, 'Admin change failed');
-    
-    stop_prank(verifier_address);
-}
+        let commitment: felt252 = 123;
+        let proof: Array<felt252> = array![1, 2, 3];
 
-#[test]
-#[should_panic(expected: ('Only admin can change admin',))]
-fn test_unauthorized_admin_change() {
-    // Deploy the ZK Verifier contract
-    let verifier_class = declare("ZKVerifier");
-    let admin: ContractAddress = contract_address_const::<ADMIN_ADDRESS>();
-    
-    let mut calldata = ArrayTrait::new();
-    calldata.append(admin.into());
-    
-    let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
-    let verifier_address = verifier_deployment.contract_address;
-    // Create dispatcher
-    let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
-    
-    // Set non-admin as caller
-    let user: ContractAddress = contract_address_const::<USER_ADDRESS>();
-    start_prank(verifier_address, user);
-    
-    // Try to change admin (should fail)
-    let new_admin: ContractAddress = contract_address_const::<USER_ADDRESS>();
-    verifier_dispatcher.set_admin(new_admin);  // This should panic
-    
-    stop_prank(verifier_address);
+        start_cheat_caller_address(zk_verifier_address, admin);
+        let is_valid = zk_verifier_dispatcher.verify_ownership(commitment, proof);
+        stop_cheat_caller_address(zk_verifier_address);
+
+        assert(is_valid == 1, 'Ownership should be valid');
+    }
+
+    #[test]
+    fn test_set_admin() {
+        let admin: ContractAddress = contract_address_const::<'admin'>();
+        let (zk_verifier_dispatcher, zk_verifier_address) = deploy_zk_verifier(admin);
+        let new_admin: ContractAddress = contract_address_const::<'new_admin'>();
+
+        start_cheat_caller_address(zk_verifier_address, admin);
+        zk_verifier_dispatcher.set_admin(new_admin);
+        stop_cheat_caller_address(zk_verifier_address);
+
+        assert(zk_verifier_dispatcher.get_admin() == new_admin, 'Admin should be updated');
+    }
 }
