@@ -17,7 +17,9 @@ fn test_verifier_deployment() {
     
     let mut calldata = ArrayTrait::new();
     calldata.append(admin.into());
-    let verifier_address = verifier_class.deploy(@calldata).unwrap();
+    
+    let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
+    let verifier_address = verifier_deployment.contract_address;
     
     // Create dispatcher
     let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
@@ -34,7 +36,9 @@ fn test_proof_verification() {
     
     let mut calldata = ArrayTrait::new();
     calldata.append(admin.into());
-    let verifier_address = verifier_class.deploy(@calldata).unwrap();
+
+    let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
+    let verifier_address = verifier_deployment.contract_address;
     
     // Create dispatcher
     let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
@@ -55,7 +59,9 @@ fn test_ownership_verification() {
     
     let mut calldata = ArrayTrait::new();
     calldata.append(admin.into());
-    let verifier_address = verifier_class.deploy(@calldata).unwrap();
+
+    let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
+    let verifier_address = verifier_deployment.contract_address;
     
     // Create dispatcher
     let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
@@ -76,7 +82,9 @@ fn test_admin_change() {
     
     let mut calldata = ArrayTrait::new();
     calldata.append(admin.into());
-    let verifier_address = verifier_class.deploy(@calldata).unwrap();
+
+   let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
+    let verifier_address = verifier_deployment.contract_address;
     
     // Create dispatcher
     let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
@@ -102,8 +110,9 @@ fn test_unauthorized_admin_change() {
     
     let mut calldata = ArrayTrait::new();
     calldata.append(admin.into());
-    let verifier_address = verifier_class.deploy(@calldata).unwrap();
     
+    let verifier_deployment = verifier_class.deploy(@calldata).unwrap();
+    let verifier_address = verifier_deployment.contract_address;
     // Create dispatcher
     let verifier_dispatcher = IZKVerifierDispatcher { contract_address: verifier_address };
     

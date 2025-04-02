@@ -25,7 +25,7 @@ fn test_marketplace_deployment() {
     let mut calldata = ArrayTrait::new();
     calldata.append(platform_fee_percentage.into());
     calldata.append(platform_fee_recipient.into());
-    let marketplace_address = marketplace_class.deploy(@calldata).unwrap();
+    let marketplace_address = marketplace_class.deploy(@calldata.span()).unwrap();
     
     // Create dispatcher
     let marketplace_dispatcher = IMarketPlaceDispatcher { contract_address: marketplace_address };
@@ -44,13 +44,13 @@ fn test_listing_and_updating() {
     
     let mut verifier_calldata = ArrayTrait::new();
     verifier_calldata.append(admin.into());
-    let verifier_address = verifier_class.deploy(@verifier_calldata).unwrap();
+    let verifier_address = verifier_class.deploy(@verifier_calldata.span()).unwrap();
     
     let nft_class = declare("AnonymousNFT");
     let mut nft_calldata = ArrayTrait::new();
     nft_calldata.append(admin.into());
     nft_calldata.append(verifier_address.into());
-    let nft_address = nft_class.deploy(@nft_calldata).unwrap();
+    let nft_address = nft_class.deploy(@nft_calldata.span()).unwrap();
     
     let marketplace_class = declare("MarketPlace");
     let platform_fee_recipient: ContractAddress = contract_address_const::<PLATFORM_FEE_RECIPIENT>();
@@ -59,7 +59,7 @@ fn test_listing_and_updating() {
     let mut marketplace_calldata = ArrayTrait::new();
     marketplace_calldata.append(platform_fee_percentage.into());
     marketplace_calldata.append(platform_fee_recipient.into());
-    let marketplace_address = marketplace_class.deploy(@marketplace_calldata).unwrap();
+    let marketplace_address = marketplace_class.deploy(@marketplace_calldata.span()).unwrap();
     
     // Create dispatchers
     let nft_dispatcher = IAnonymousNFTDispatcher { contract_address: nft_address };
@@ -71,7 +71,7 @@ fn test_listing_and_updating() {
     
     let mut mint_proof = ArrayTrait::new();
     mint_proof.append(0x1);
-    nft_dispatcher.mint_anonymous(TOKEN_ID, mint_proof);
+    nft_dispatcher.mint_anonymous(TOKEN_ID, mint_proof.span());
     
     stop_prank(nft_address);
     
@@ -87,7 +87,7 @@ fn test_listing_and_updating() {
     list_proof.append(0x2);
     let expiration: u64 = 86400; // 1 day
     
-    let listing_id = marketplace_dispatcher.list_nft(TOKEN_ID, LISTING_PRICE, expiration, list_proof);
+    let listing_id = marketplace_dispatcher.list_nft(TOKEN_ID, LISTING_PRICE, expiration, list_proof.span());
     
     // Verify listing
     let listing = marketplace_dispatcher.get_listing(listing_id);
@@ -115,13 +115,13 @@ fn test_offers_and_acceptance() {
     
     let mut verifier_calldata = ArrayTrait::new();
     verifier_calldata.append(admin.into());
-    let verifier_address = verifier_class.deploy(@verifier_calldata).unwrap();
+    let verifier_address = verifier_class.deploy(@verifier_calldata.span()).unwrap();
     
     let nft_class = declare("AnonymousNFT");
     let mut nft_calldata = ArrayTrait::new();
     nft_calldata.append(admin.into());
     nft_calldata.append(verifier_address.into());
-    let nft_address = nft_class.deploy(@nft_calldata).unwrap();
+    let nft_address = nft_class.deploy(@nft_calldata.span()).unwrap();
     
     let marketplace_class = declare("MarketPlace");
     let platform_fee_recipient: ContractAddress = contract_address_const::<PLATFORM_FEE_RECIPIENT>();
@@ -130,7 +130,7 @@ fn test_offers_and_acceptance() {
     let mut marketplace_calldata = ArrayTrait::new();
     marketplace_calldata.append(platform_fee_percentage.into());
     marketplace_calldata.append(platform_fee_recipient.into());
-    let marketplace_address = marketplace_class.deploy(@marketplace_calldata).unwrap();
+    let marketplace_address = marketplace_class.deploy(@marketplace_calldata.span()).unwrap();
     
     // Create dispatchers
     let nft_dispatcher = IAnonymousNFTDispatcher { contract_address: nft_address };
@@ -142,7 +142,7 @@ fn test_offers_and_acceptance() {
     
     let mut mint_proof = ArrayTrait::new();
     mint_proof.append(0x1);
-    nft_dispatcher.mint_anonymous(TOKEN_ID, mint_proof);
+    nft_dispatcher.mint_anonymous(TOKEN_ID, mint_proof.span());
     
     stop_prank(nft_address);
     
@@ -158,7 +158,7 @@ fn test_offers_and_acceptance() {
     list_proof.append(0x2);
     let expiration: u64 = 86400; // 1 day
     
-    let listing_id = marketplace_dispatcher.list_nft(TOKEN_ID, LISTING_PRICE, expiration, list_proof);
+    let listing_id = marketplace_dispatcher.list_nft(TOKEN_ID, LISTING_PRICE, expiration, list_proof.span());
     
     stop_prank(marketplace_address);
     
@@ -195,13 +195,13 @@ fn test_direct_purchase() {
     
     let mut verifier_calldata = ArrayTrait::new();
     verifier_calldata.append(admin.into());
-    let verifier_address = verifier_class.deploy(@verifier_calldata).unwrap();
+    let verifier_address = verifier_class.deploy(@verifier_calldata.span()).unwrap();
     
     let nft_class = declare("AnonymousNFT");
     let mut nft_calldata = ArrayTrait::new();
     nft_calldata.append(admin.into());
     nft_calldata.append(verifier_address.into());
-    let nft_address = nft_class.deploy(@nft_calldata).unwrap();
+    let nft_address = nft_class.deploy(@nft_calldata.span()).unwrap();
     
     let marketplace_class = declare("MarketPlace");
     let platform_fee_recipient: ContractAddress = contract_address_const::<PLATFORM_FEE_RECIPIENT>();
@@ -210,7 +210,7 @@ fn test_direct_purchase() {
     let mut marketplace_calldata = ArrayTrait::new();
     marketplace_calldata.append(platform_fee_percentage.into());
     marketplace_calldata.append(platform_fee_recipient.into());
-    let marketplace_address = marketplace_class.deploy(@marketplace_calldata).unwrap();
+    let marketplace_address = marketplace_class.deploy(@marketplace_calldata.span()).unwrap();
     
     // Create dispatchers
     let nft_dispatcher = IAnonymousNFTDispatcher { contract_address: nft_address };
@@ -222,7 +222,7 @@ fn test_direct_purchase() {
     
     let mut mint_proof = ArrayTrait::new();
     mint_proof.append(0x1);
-    nft_dispatcher.mint_anonymous(TOKEN_ID, mint_proof);
+    nft_dispatcher.mint_anonymous(TOKEN_ID, mint_proof.span());
     
     stop_prank(nft_address);
     
@@ -238,7 +238,7 @@ fn test_direct_purchase() {
     list_proof.append(0x2);
     let expiration: u64 = 86400; // 1 day
     
-    let listing_id = marketplace_dispatcher.list_nft(TOKEN_ID, LISTING_PRICE, expiration, list_proof);
+    let listing_id = marketplace_dispatcher.list_nft(TOKEN_ID, LISTING_PRICE, expiration, list_proof.span());
     
     stop_prank(marketplace_address);
     
@@ -249,7 +249,7 @@ fn test_direct_purchase() {
     let mut purchase_proof = ArrayTrait::new();
     purchase_proof.append(0x3);
     
-    marketplace_dispatcher.purchase(listing_id, purchase_proof);
+    marketplace_dispatcher.purchase(listing_id, purchase_proof.span());
     
     // Verify listing is inactive after purchase
     let updated_listing = marketplace_dispatcher.get_listing(listing_id);
@@ -269,13 +269,13 @@ fn test_listing_cancellation() {
     
     let mut verifier_calldata = ArrayTrait::new();
     verifier_calldata.append(admin.into());
-    let verifier_address = verifier_class.deploy(@verifier_calldata).unwrap();
+    let verifier_address = verifier_class.deploy(@verifier_calldata.span()).unwrap();
     
     let nft_class = declare("AnonymousNFT");
     let mut nft_calldata = ArrayTrait::new();
     nft_calldata.append(admin.into());
     nft_calldata.append(verifier_address.into());
-    let nft_address = nft_class.deploy(@nft_calldata).unwrap();
+    let nft_address = nft_class.deploy(@nft_calldata.span()).unwrap();
     
     let marketplace_class = declare("MarketPlace");
     let platform_fee_recipient: ContractAddress = contract_address_const::<PLATFORM_FEE_RECIPIENT>();
@@ -284,8 +284,46 @@ fn test_listing_cancellation() {
     let mut marketplace_calldata = ArrayTrait::new();
     marketplace_calldata.append(platform_fee_percentage.into());
     marketplace_calldata.append(platform_fee_recipient.into());
-    let marketplace_address = marketplace_class.deploy(@marketplace_calldata).unwrap();
+    let marketplace_address = marketplace_class.deploy(@marketplace_calldata.span()).unwrap();
     
     // Create dispatchers
     let nft_dispatcher = IAnonymousNFTDispatcher { contract_address: nft_address };
-    let marketplace
+    let marketplace_dispatcher = IMarketPlaceDispatcher { contract_address: marketplace_address };
+    
+
+    // Mint an NFT
+    let seller: ContractAddress = contract_address_const::<SELLER_ADDRESS>();
+    start_prank(nft_address, seller);
+    
+    let mut mint_proof = ArrayTrait::new();
+    mint_proof.append(0x1);
+    nft_dispatcher.mint_anonymous(TOKEN_ID, mint_proof.span());
+    
+    stop_prank(nft_address);
+    
+    // Approve marketplace
+    start_prank(marketplace_address, platform_fee_recipient);
+    marketplace_dispatcher.approve_collection(nft_address, true);
+    stop_prank(marketplace_address);
+    
+    // List NFT
+    start_prank(marketplace_address, seller);
+    
+    let mut list_proof = ArrayTrait::new();
+    list_proof.append(0x2);
+    let expiration: u64 = 86400; // 1 day
+    
+    let listing_id = marketplace_dispatcher.list_nft(TOKEN_ID, LISTING_PRICE, expiration, list_proof.span());
+    
+    stop_prank(marketplace_address);
+
+        // Cancel listing
+    start_prank(marketplace_address, seller);
+    marketplace_dispatcher.cancel_listing(listing_id);
+
+    // Verify listing is inactive after cancellation
+    let updated_listing = marketplace_dispatcher.get_listing(listing_id);
+    assert(!updated_listing.active, 'Listing should be inactive');
+
+    stop_prank(marketplace_address);
+}
