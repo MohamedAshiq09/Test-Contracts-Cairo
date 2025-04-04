@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use super::MarketPlace;
+    use super::MarketPlace
     use super::MarketPlace::IMarketPlaceDispatcher;
-    use super::MarketPlace::IMarketPlaceDispatcherTrait;
+    // use super::MarketPlace::IMarketPlaceDispatcherTrait;
+    use super::MarketPlace::IMarketPlaceDispatcherTrait
     use starknet::{ContractAddress, contract_address_const};
     use snforge_std::{ declare, ContractClassTrait, start_cheat_caller_address, stop_cheat_caller_address, spy_events, EventSpyAssertionsTrait };
 
